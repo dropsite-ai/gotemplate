@@ -10,6 +10,7 @@ import (
 )
 
 // Embed the template files (excluding .gitignore, gotemplate.go, and cmd/*).
+// We now embed goreleaser.yaml (without a dot) along with other desired files.
 //
 //go:embed goreleaser.yaml README.md go.mod go.sum Makefile LICENSE
 var templateFiles embed.FS
@@ -51,17 +52,17 @@ func main() {
 			return err
 		}
 
-		// Replace "gotemplate" in file content.
-		content := strings.ReplaceAll(string(data), "gotemplate", projectName)
-
-		// For .goreleaser.yaml, change build main from ./gotemplate.go to ./cmd/main.go.
+		var content string
+		// For .goreleaser.yaml, perform the special substitution first.
 		if filepath.Base(destPath) == ".goreleaser.yaml" {
-			content = strings.ReplaceAll(content, "./gotemplate.go", "./cmd/main.go")
-		}
-
-		// For Makefile, remove " --config goreleaser.yaml"
-		if filepath.Base(destPath) == "Makefile" {
-			content = strings.ReplaceAll(content, " --config goreleaser.yaml", "")
+			content = strings.ReplaceAll(string(data), "./gotemplate.go", "./cmd/main.go")
+			content = strings.ReplaceAll(content, "gotemplate", projectName)
+		} else {
+			content = strings.ReplaceAll(string(data), "gotemplate", projectName)
+			// For Makefile, remove " --config goreleaser.yaml"
+			if filepath.Base(destPath) == "Makefile" {
+				content = strings.ReplaceAll(content, " --config goreleaser.yaml", "")
+			}
 		}
 
 		return os.WriteFile(destPath, []byte(content), 0644)
