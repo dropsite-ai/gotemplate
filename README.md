@@ -32,6 +32,12 @@ go get github.com/dropsite-ai/gotemplate
    go build -o gotemplate cmd/main.go
    ```
 
+## Usage
+
+```bash
+gotemplate <name>
+```
+
 ## Test
 
 ```bash
