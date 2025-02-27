@@ -72,10 +72,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Write a new mypackage.go with an empty package declaration.
-	mypackagePath := filepath.Join(projectName, "mypackage.go")
-	if err := os.WriteFile(mypackagePath, []byte("package mypackage\n"), 0644); err != nil {
-		fmt.Printf("Error writing mypackage.go: %v\n", err)
+	// Write a new file using the project name as the package declaration.
+	packageFilePath := filepath.Join(projectName, projectName+".go")
+	packageContent := fmt.Sprintf("package %s\n", projectName)
+	if err := os.WriteFile(packageFilePath, []byte(packageContent), 0644); err != nil {
+		fmt.Printf("Error writing %s.go: %v\n", projectName, err)
 		os.Exit(1)
 	}
 
