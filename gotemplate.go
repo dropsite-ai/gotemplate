@@ -62,6 +62,10 @@ func commitTemplateFiles() error {
 			message: "Go modules",
 		},
 		{
+			files:   []string{".gitignore"},
+			message: "Git ignore paths",
+		},
+		{
 			files:   []string{".goreleaser.yaml"},
 			message: "Goreleaser configuration",
 		},
