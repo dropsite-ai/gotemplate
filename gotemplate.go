@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 )
@@ -17,15 +18,82 @@ var templateFiles embed.FS
 
 func main() {
 	if len(os.Args) < 2 {
-		fmt.Println("Usage: gotemplate <projectname>")
+		fmt.Println("Usage:")
+		fmt.Println("  gotemplate <projectname>  - Create a new Go project from the template.")
+		fmt.Println("  gotemplate -commit        - Commit known template files separately.")
 		os.Exit(1)
 	}
-	projectName := os.Args[1]
 
+	// If the user just wants to commit the template files in the current directory.
+	if os.Args[1] == "-commit" {
+		if err := commitTemplateFiles(); err != nil {
+			fmt.Printf("Error committing template files: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Println("Template files committed successfully.")
+		return
+	}
+
+	// Otherwise, create a new project with the provided name.
+	projectName := os.Args[1]
+	if err := createProject(projectName); err != nil {
+		fmt.Printf("Error: %v\n", err)
+		os.Exit(1)
+	}
+	fmt.Printf("Project %s created successfully.\n", projectName)
+}
+
+func commitTemplateFiles() error {
+	// Define the file groups and their associated commit messages.
+	groups := []struct {
+		files   []string
+		message string
+	}{
+		{
+			files:   []string{"Makefile"},
+			message: "Makefile",
+		},
+		{
+			files:   []string{"README.md"},
+			message: "Project README",
+		},
+		{
+			files:   []string{"go.mod", "go.sum"},
+			message: "Go modules",
+		},
+		{
+			files:   []string{".goreleaser.yaml"},
+			message: "Goreleaser configuration",
+		},
+	}
+
+	for _, group := range groups {
+		// `git add` the files in this group.
+		addArgs := append([]string{"add"}, group.files...)
+		if err := runGitCommand(addArgs...); err != nil {
+			return err
+		}
+
+		// Commit them with the specified commit message.
+		commitArgs := []string{"commit", "-m", group.message}
+		if err := runGitCommand(commitArgs...); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func runGitCommand(args ...string) error {
+	cmd := exec.Command("git", args...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
+}
+
+func createProject(projectName string) error {
 	// Create the project root directory.
 	if err := os.Mkdir(projectName, 0755); err != nil {
-		fmt.Printf("Error creating project directory: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("creating project directory: %v", err)
 	}
 
 	// Walk through the embedded template files and write them out.
@@ -68,23 +136,20 @@ func main() {
 		return os.WriteFile(destPath, []byte(content), 0644)
 	})
 	if err != nil {
-		fmt.Printf("Error copying template files: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("copying template files: %v", err)
 	}
 
 	// Write a new file using the project name as the package declaration.
 	packageFilePath := filepath.Join(projectName, projectName+".go")
 	packageContent := fmt.Sprintf("package %s\n", projectName)
 	if err := os.WriteFile(packageFilePath, []byte(packageContent), 0644); err != nil {
-		fmt.Printf("Error writing %s.go: %v\n", projectName, err)
-		os.Exit(1)
+		return fmt.Errorf("writing %s.go: %v", projectName, err)
 	}
 
 	// Create the cmd directory and write a new main.go with an empty main() function.
 	cmdDir := filepath.Join(projectName, "cmd")
 	if err := os.MkdirAll(cmdDir, 0755); err != nil {
-		fmt.Printf("Error creating cmd directory: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("creating cmd directory: %v", err)
 	}
 
 	mainGoPath := filepath.Join(cmdDir, "main.go")
@@ -94,8 +159,7 @@ func main() {
 }
 `
 	if err := os.WriteFile(mainGoPath, []byte(mainContent), 0644); err != nil {
-		fmt.Printf("Error writing cmd/main.go: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("writing cmd/main.go: %v", err)
 	}
 
 	// Manually write the .gitignore file with the specified contents.
@@ -104,9 +168,8 @@ func main() {
 dist
 `
 	if err := os.WriteFile(gitignorePath, []byte(gitignoreContent), 0644); err != nil {
-		fmt.Printf("Error writing .gitignore: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("writing .gitignore: %v", err)
 	}
 
-	fmt.Printf("Project %s created successfully.\n", projectName)
+	return nil
 }

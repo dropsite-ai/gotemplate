@@ -1,6 +1,6 @@
 # gotemplate
 
-gotemplate for dropsite-ai.
+Go template for Dropsite.
 
 ## Installation
 
@@ -34,9 +34,28 @@ go get github.com/dropsite-ai/gotemplate
 
 ## Usage
 
+### Create a New Project
+
+To create a new Go project using the predefined template:
 ```bash
-gotemplate <name>
+gotemplate <projectname>
 ```
+This will generate a new directory named `<projectname>` containing common project files such as:
+- `Makefile`
+- `README.md`
+- `go.mod`, `go.sum`
+- `.goreleaser.yaml`
+- A basic `cmd/main.go`
+- A `.gitignore` file
+
+### Commit Template Files Separately
+
+If you are inside a Git repository and want to quickly commit template files in logical groups, use:
+```bash
+gotemplate -commit
+```
+
+This ensures cleaner commit history when initializing a project.
 
 ## Test
 
@@ -52,4 +71,5 @@ make release
 
 ## License
 
-[MIT License](LICENSE)  
+[MIT License](LICENSE)
+```
